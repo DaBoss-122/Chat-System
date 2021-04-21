@@ -1,0 +1,128 @@
+Group Assignment Dr. Gowing Specifications
+
+	Implement a chat server using the following protocol:
+	
+	Anyone can join the server on port 9000
+	
+	The client program takes two arguments: the IP address of the server and the name you want to use. The name may not contain spaces.
+	
+	The server will not allow blank names (the client should reject it) and the server will send back an error message if the name is already in use.
+	
+	Any text that the user types in the client will be sent to the server, which will then send the text to all of the other clients, prefixed with the user's name in square brackets.
+	
+	The user is presented with a prompt showing his/her name and a > followed by a single space, such as
+	
+	Bob>
+	
+	At which the user will be able to type commands and text.
+	
+	For example, if Bob types Hi, everyone else will see
+	
+	[Bob] Hi
+	
+	on their terminals.
+	
+	New users joining should be announced to all clients (including the newly joining client) as, for example with Bob
+	
+	**Bob is joining the chat**
+	
+	And similarly, when the connection goes down
+	
+	**Bob is leaving the chat**
+	
+	The only command that the client accepts from the command prompt is @exit, which will cause the client to exit the chat and the program to end.
+	
+	You are free to use whatever "protocol" you devise, but it is recommended that you make it portable so clients can be written in other languages.
+	
+	You are free to use whatever programming language you wish to use from the approved languages in the course. You must submit source code.
+	
+	The server must record the following in its log file:
+	
+	Connections, including IP, Port, and user name requested.
+	
+	The disposition of that request (accepted, rejected - name in use)
+	
+	All discussions as if the server were a client other than any of the users
+	
+	The join and leave messages, recording the time.
+	
+	You may want to have more than one log file.
+
+
+
+Group Assignment Student Specifications
+
+	Client
+		• Connect
+			Set username
+				I want to connect to server and this is the username I want to have
+			sock.connect()
+				Send username request
+				Port 9000
+			Server replies
+				Accepted (all set to chat)
+				Rejected (username taken, connection not established)
+					If rejected because of username, loop back to the request for a username
+			
+		• Talk
+			TCP
+			Network Byte Order
+			<CommandType><LengthMessage><Message>
+				Command Type - 1 Byte
+					- 02 = Sending the message
+					- 01 = Leave the chat
+					- 00 = Join the chat
+						<CommandType><LengthMessage><Username>
+					- 05 = Error
+						◊ Unsupported Command
+						◊ Sent only to the person who sent the bad command
+					Extra
+					- 03 = List
+					- 04 = Direct
+				Length Message - 2 Bytes
+					- This specifies the length of the message following
+					- NOT the commandType, LengthMessage, and Message combination
+					- Length can be 0 so there are no bytes after
+				Message - LengthMessage
+					Sent in ASCII
+			
+		• Receive
+			
+			
+		• Leave
+			Send disconnect message
+			Closes connection
+			
+	Server
+		• Connect
+			Server Username Reply
+				<CommandType><LengthMessage><Status>
+					Command Type - 1 Byte
+					LengthMessage - 2 Byte
+					Status - LengthMessage
+			Assign the Client IP and port number together
+				Username will be assigned to this combination
+		• Receive
+			Specified in the client send
+		
+		• Send
+			Server Chat Data
+				Picks username based on FD
+				Sends "Username: message" to everyone
+				
+
+
+Progression
+	1. Sock.connect()
+	2. Server Sends list of commands
+		a. Only to the person connecting
+	3. Request Username
+		• Loop if not valid username
+		a. <CommandType><LengthMessage><Username>
+		Receives back: <CommandType><LengthMessage><Status>
+			Status: 0 = Accepted
+				1 = Already Taken
+	4. Send/Receive
+		a. <CommandType><LengthMessage><Message>
+	5. Disconnect at any time
+<CommandType><LengthMessage><Message>
