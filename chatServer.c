@@ -53,7 +53,7 @@ void insert(int fd, char[] username, int length) {
    firstConnection = node;
 }
 struct userConnection* query(int fd) {
-  struct node* cur = firstConnection;
+  struct userConnection* cur = firstConnection;
   while (cur->fd != fd) {
     if (cur->next==NULL) {
     return NULL;
@@ -64,9 +64,22 @@ struct userConnection* query(int fd) {
   }
   return cur;
 }
+struct userConnection* query(char[] name, int len) {
+  struct userConnection* cur = firstConnection;
+  while (cur->length!=len&&(strcmp(cur->username,name))) {
+    if (cur->next==NULL) {
+      return NULL;
+    }
+    else {
+      cur=cur->next;
+    }
+  }
+  return cur;
+}
+
 struct userConnection* userRemove(int fd) {
-   struct node* cur = firstConnection;
-   struct node* prev = NULL;
+   struct userConnection* cur = firstConnection;
+   struct userConnection* prev = NULL;
 
    if(firstConnection == NULL) {
       return NULL;
