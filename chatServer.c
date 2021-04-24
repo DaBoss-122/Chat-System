@@ -52,6 +52,18 @@ void insert(int fd, char[] username, int length) {
    node->next = firstConnection;
    firstConnection = node;
 }
+struct userConnection* query(int fd) {
+  struct node* cur = firstConnection;
+  while (cur->fd != fd) {
+    if (cur->next==NULL) {
+    return NULL;
+  }
+  else {
+    cur=cur->next;
+  }
+  }
+  return cur;
+}
 struct userConnection* userRemove(int fd) {
    struct node* cur = firstConnection;
    struct node* prev = NULL;
