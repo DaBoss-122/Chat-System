@@ -43,71 +43,102 @@ struct userConnection{
 
 struct userConnection* firstConnection;
 
+void insert(int fd, char[] username, int length) {
+   struct userConnection *node = (struct userConnection*) malloc(sizeof(struct userConnection));
+
+   node->fd = fd;
+   node->username = username;
+   node->length = length;
+   node->next = firstConnection;
+   firstConnection = node;
+}
+struct userConnection* userRemove(int fd) {
+   struct node* cur = firstConnection;
+   struct node* prev = NULL;
+
+   if(firstConnection == NULL) {
+      return NULL;
+   }
+   while(cur->fd != fd) {
+      if(cur->next == NULL) {
+         return NULL;
+      } else {
+         prev = cur;
+         cur = cur->next;
+      }
+   }
+   if(cur == firstConnection) {
+      firstConnection = firstConnection->next;
+   } else {
+      prev->next = cur->next;
+   }
+   return cur;
+}
 
 int main(int argc, char **argv)
 {
    char recline[MAXLINE + 1];
-   
+
    struct sockaddr_in servaddr, caddr;
-   
+
    int ssock;  // server sockfd
    int csock;  // client sockfd when accepting connction
    int tsock;  // temp sockfd for working with select
-   
+
    int flags;  // for fcntl calls
    int res;    // result for function calls
    socklen_t csize;
-   
+
    int nrrec = 0;
    fd_set set, rset;
 
    ssock = socket(AF_INET, SOCK_STREAM, 0);
-   
+
    if (ssock < 0)
       do_error("socket() error", errno);
-      
+
    bzero(&servaddr, sizeof(servaddr));
    servaddr.sin_family = AF_INET;
    servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
    servaddr.sin_port = htons(ECHO_PORT);
-   
+
    res = bind(ssock, (struct sockaddr*) &servaddr, sizeof(servaddr));
    if (res == -1)
       do_error("bind() error", errno);
-   
+
    flags = fcntl(ssock, F_GETFD, 0);
-   
+
    if (flags == -1)
       do_error("fcntl(F_GETFD) error", errno);
-   
+
    flags |= O_NONBLOCK;
-   
+
    res = fcntl(ssock, F_SETFD, flags);
-   
+
    if(res == -1)
       do_error("fcntl(F_SETFD) error", errno);
-      
+
    listen(ssock, 5);
-   
+
    // zero select sets for select
    FD_ZERO(&set);
    FD_ZERO(&rset);
-   
+
    // set server socket on main select set
    FD_SET(ssock, &set);
-   
+
    // infinite loop to process activity
    for(;;)
    {
       // copy main set to receive set
       rset = set;
-   
+
       // block indefinitely until someone is ready
       res = select(FD_SETSIZE, &rset, NULL, NULL, NULL);
-      
+
       if(res == -1)
          do_error("select() error", errno);
-         
+
       for(int i = 0; i < FD_SETSIZE; i++)
       {
          if(FD_ISSET(i, &rset))
@@ -123,8 +154,8 @@ int main(int argc, char **argv)
                   // add new client socket to master set
                   FD_SET(csock, &set);
 				  //Add to userConnection
-				  
-               } 
+
+               }
             }
             else // it's a client socket
             {
@@ -150,7 +181,7 @@ int main(int argc, char **argv)
 							close(i);
 							FD_CLR(i, &set);
 							// remove from userConnection
-							
+
 							break;
 						case TALK:
 							//1. check to see if username is set/get username
@@ -167,21 +198,21 @@ int main(int argc, char **argv)
 						case ERROR:
 							//blah blah blah
 							break;
-					
-				  
-				  
-				  
+
+
+
+
                   if(res == -1)
                   {
                      // send error - clear socket from list
-                     
+
                   }
                }
             }
          }
       }
    }
-   
+
    return 0;
 }
 
