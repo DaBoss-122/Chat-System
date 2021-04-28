@@ -25,8 +25,11 @@
 extern int errno;
 
 void do_error(const char *text, int enr);
+//Inserts a user - assumes that length includes the null pointer in its calculation
+void insert(int fd, char *username, int length);
+struct userConnection* userRemove(int fd);
 
-//Methods:
+//Functions:
 //Sends to all the sockets
 
 //Check if a username is set
@@ -34,46 +37,16 @@ void do_error(const char *text, int enr);
 //Check if username is used already
 
 
-struct userConnection{
+struct userConnection {
 	int fd;
-	char[] username;
+	char *username;
 	int length;
 	struct userConnection* next;
 };
 
-struct userConnection* firstConnection;
+struct userConnection *firstConnection;
 
-void insert(int fd, char[] username, int length) {
-   struct userConnection *node = (struct userConnection*) malloc(sizeof(struct userConnection));
 
-   node->fd = fd;
-   node->username = username;
-   node->length = length;
-   node->next = firstConnection;
-   firstConnection = node;
-}
-struct userConnection* userRemove(int fd) {
-   struct node* cur = firstConnection;
-   struct node* prev = NULL;
-
-   if(firstConnection == NULL) {
-      return NULL;
-   }
-   while(cur->fd != fd) {
-      if(cur->next == NULL) {
-         return NULL;
-      } else {
-         prev = cur;
-         cur = cur->next;
-      }
-   }
-   if(cur == firstConnection) {
-      firstConnection = firstConnection->next;
-   } else {
-      prev->next = cur->next;
-   }
-   return cur;
-}
 
 int main(int argc, char **argv)
 {
@@ -172,7 +145,7 @@ int main(int argc, char **argv)
 					//Switch statement for operations
 					switch(recline[0]){
 						case JOIN:
-							//1. itterate through list of usernames
+							//1. iterate through list of usernames
 							//2. find FD i
 							//3.1 set username & length in userConnection
 							//3.2 or if username is used, send used to client
@@ -202,22 +175,58 @@ int main(int argc, char **argv)
 
 
 
-                  if(res == -1)
-                  {
-                     // send error - clear socket from list
+	                  /*if(res == -1)
+	                  {
+	                     // send error - clear socket from list
 
-                  }
-               }
-            }
-         }
-      }
-   }
+					 }*/
+	               }
+	            }
+	         }
+	      }
+	   }
+	}
 
    return 0;
 }
 
-void do_error(const char *text, int enr)
-{
+//Inserts a user - assumes that length includes the null pointer in its calculation
+void insert(int fd, char *username, int length) {
+   struct userConnection *node = (struct userConnection*) malloc(sizeof(struct userConnection));
+
+   node->fd = fd;
+   //Assumes that length includes the null pointer char!
+   node->username = malloc(sizeof(char) * (length));
+   node->length = length;
+   node->next = firstConnection;
+   firstConnection = node;
+}
+
+//Removes a user from the list of users
+struct userConnection *userRemove(int fd) {
+   struct userConnection *cur = firstConnection;
+   struct userConnection *prev = NULL;
+
+   if(firstConnection == NULL) {
+      return NULL;
+   }
+   while(cur->fd != fd) {
+      if(cur->next == NULL) {
+         return NULL;
+      } else {
+         prev = cur;
+         cur = cur->next;
+      }
+   }
+   if(cur == firstConnection) {
+      firstConnection = firstConnection->next;
+   } else {
+      prev->next = cur->next;
+   }
+   return cur;
+}
+
+void do_error(const char *text, int enr){
    fprintf(stderr,"%s %d: %s\n", text, errno, strerror(errno));
    exit(errno);
 }
