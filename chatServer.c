@@ -28,6 +28,7 @@ void do_error(const char *text, int enr);
 //Inserts a user - assumes that length includes the null pointer in its calculation
 void insert(int fd, char *username, int length);
 struct userConnection* userRemove(int fd);
+int findUserFD(int fd);
 
 //Functions:
 //Sends to all the sockets
@@ -64,6 +65,9 @@ int main(int argc, char **argv)
 
    int nrrec = 0;
    fd_set set, rset;
+   char *taken = "1";
+
+   int found = 0; //Was the username found or not
 
    ssock = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -79,14 +83,14 @@ int main(int argc, char **argv)
    if (res == -1)
       do_error("bind() error", errno);
 
-   flags = fcntl(ssock, F_GETFD, 0);
+   flags = fcntl(ssock, F_GETFL, 0);
 
    if (flags == -1)
       do_error("fcntl(F_GETFD) error", errno);
 
    flags |= O_NONBLOCK;
 
-   res = fcntl(ssock, F_SETFD, flags);
+   res = fcntl(ssock, F_SETFL, flags);
 
    if(res == -1)
       do_error("fcntl(F_SETFD) error", errno);
@@ -100,6 +104,7 @@ int main(int argc, char **argv)
    // set server socket on main select set
    FD_SET(ssock, &set);
 
+	printf("Server running.\n");
    // infinite loop to process activity
    for(;;)
    {
@@ -141,14 +146,22 @@ int main(int argc, char **argv)
                }
                else if (res > 0)
                {
+				    printf("Received: %s\n", recline);
 					recline[res] = 0;
 					//Switch statement for operations
 					switch(recline[0]){
 						case JOIN:
-							//1. iterate through list of usernames
-							//2. find FD i
-							//3.1 set username & length in userConnection
-							//3.2 or if username is used, send used to client
+							printf("Joining.\n");
+							//1. iterate through list of usernames and find the filedescriptor
+							found = findUserFD(i);
+							if (!found){
+								//2.0 Set username & length in userConnection
+								//insert(i, &recline[3], );
+							}
+							//2.1 or if username is used, send used to client
+							else {
+								send(ssock, taken, 1, 0);
+							}
 							break;
 						case LEAVE:
 							close(i);
@@ -188,6 +201,28 @@ int main(int argc, char **argv)
 	}
 
    return 0;
+}
+
+int findUserFD(int fd){
+	struct userConnection *cur = firstConnection;
+    struct userConnection *prev = NULL;
+
+    if(firstConnection == NULL) {
+       return -1;
+    }
+	//Loop through the list of
+	while(cur->fd != fd) {
+		if(cur->next == NULL) {
+			//User wasn't found
+			return 0;
+		}
+		else {
+			prev = cur;
+			cur = cur->next;
+		}
+	}
+	//Found the user if we got here
+	return 1;
 }
 
 //Inserts a user - assumes that length includes the null pointer in its calculation
