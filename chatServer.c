@@ -69,7 +69,7 @@ int main(int argc, char **argv)
    char *taken = "1";
 
    int found = 0; //Was the username found or not
-   struct userConnection *curentConn = NULL;
+   struct userConnection *currentConn = NULL;
 
 
    ssock = socket(AF_INET, SOCK_STREAM, 0);
@@ -159,7 +159,7 @@ int main(int argc, char **argv)
               int unameLen = res-2;
 
               							//1. iterate through list of usernames and find the filedescriptor
-							found = findUserName(username,unameLen);
+							found = findUserName(&(recline[3]),unameLen);
 							if (found<0){
 								//2.0 Set username & length in userConnection
                found = findUserFD(i);
