@@ -14,7 +14,7 @@
 #include <fcntl.h>         // for fcntl
 #include <string.h>       // for strcmp
 
-#define ECHO_PORT 7
+#define ECHO_PORT 9000
 #define MAXLINE 4096
 #define JOIN 0
 #define LEAVE 1
