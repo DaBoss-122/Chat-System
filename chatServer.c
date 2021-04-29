@@ -70,7 +70,7 @@ int main(int argc, char **argv)
 
    int found = 0; //Was the username found or not
    struct userConnection *curentConn = NULL;
-   char username[MAXLINE+1];
+
 
    ssock = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -180,9 +180,11 @@ int main(int argc, char **argv)
 							close(i);
 							FD_CLR(i, &set);
 							// remove from userConnection
-              struct userConnection *toFree = userRemove(i);
-              free(toFree->username);
-              free(toFree);
+              currentConn = userRemove(i);
+              free(currentConn->username);
+              free(currentConn);
+              //DO not free again.
+              currentConn = NULL;
 							break;
 						case TALK:
 							//1. check to see if username is set/get username
