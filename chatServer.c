@@ -41,7 +41,7 @@ int findUserName(char name[], int len);
 
 struct userConnection {
 	int fd;
-	char *username;
+	char **username;
 	int length;
 	struct userConnection* next;
 };
@@ -69,6 +69,8 @@ int main(int argc, char **argv)
    char *taken = "1";
 
    int found = 0; //Was the username found or not
+   struct userConnection *curentConn = NULL;
+   char username[MAXLINE+1];
 
    ssock = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -155,20 +157,14 @@ int main(int argc, char **argv)
 							printf("Joining.\n");
               //Extract User Name
               int unameLen = res-2;
-              char username[unameLen];
-              //We copy since recline is reused.
-              for (int ii=0; ii<unameLen; ii++) {
-                username[ii] = recline[ii+3];
-              }
 
-
-							//1. iterate through list of usernames and find the filedescriptor
+              							//1. iterate through list of usernames and find the filedescriptor
 							found = findUserName(username,unameLen);
 							if (found<0){
 								//2.0 Set username & length in userConnection
                found = findUserFD(i);
               if (!found) {
-                insert(i,&username,unameLen);
+                insert(i,&(recline[3]),unameLen);
               }
               else {
                 //Be mean and do not let them change the name.
@@ -184,7 +180,7 @@ int main(int argc, char **argv)
 							close(i);
 							FD_CLR(i, &set);
 							// remove from userConnection
-              struct userConnection toFree = userRemove(i);
+              struct userConnection *toFree = userRemove(i);
               free(toFree->username);
               free(toFree);
 							break;
@@ -229,7 +225,7 @@ int findUserName(char name[],int len) {
   }
   while (cur!=NULL) {
     if (cur->length!=len) continue;
-    if (0==strcmp(cur->username,name)) {
+    if (0==strcmp(*(cur->username),name)) {
       return cur->fd;
     }
   }
@@ -268,6 +264,8 @@ void insert(int fd, char *username, int length) {
    node->length = length;
    node->next = firstConnection;
    firstConnection = node;
+   strcpy(username, *(node->username));
+
 }
 
 //Removes a user from the list of users
