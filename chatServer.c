@@ -266,7 +266,7 @@ void insert(int fd, char *username, int length) {
    node->length = length;
    node->next = firstConnection;
    firstConnection = node;
-   strcpy(username, *(node->username));
+   strcpy(*(node->username),username);
 
 }
 
