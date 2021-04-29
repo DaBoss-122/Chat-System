@@ -12,6 +12,7 @@
 #include <string.h>        // for strerror
 #include <errno.h>         // for errno
 #include <fcntl.h>         // for fcntl
+#include <string.h>       // for strcmp
 
 #define ECHO_PORT 7
 #define MAXLINE 4096
@@ -29,7 +30,7 @@ void do_error(const char *text, int enr);
 void insert(int fd, char *username, int length);
 struct userConnection* userRemove(int fd);
 int findUserFD(int fd);
-
+int findUserName(char name[], int len);
 //Functions:
 //Sends to all the sockets
 
@@ -152,10 +153,26 @@ int main(int argc, char **argv)
 					switch(recline[0]){
 						case JOIN:
 							printf("Joining.\n");
+              //Extract User Name
+              int unameLen = res-2;
+              char username[unameLen];
+              //We copy since recline is reused.
+              for (int ii=0; ii<unameLen; ii++) {
+                username[ii] = recline[ii+3];
+              }
+
+
 							//1. iterate through list of usernames and find the filedescriptor
-							found = findUserFD(i);
-							if (!found){
+							found = findUserName(username,unameLen);
+							if (found<0){
 								//2.0 Set username & length in userConnection
+               found = findUserFD(i);
+              if (!found) {
+                insert(i,&username,unameLen);
+              }
+              else {
+                //Be mean and do not let them change the name.
+              }
 								//insert(i, &recline[3], );
 							}
 							//2.1 or if username is used, send used to client
@@ -167,7 +184,9 @@ int main(int argc, char **argv)
 							close(i);
 							FD_CLR(i, &set);
 							// remove from userConnection
-
+              struct userConnection toFree = userRemove(i);
+              free(toFree->username);
+              free(toFree);
 							break;
 						case TALK:
 							//1. check to see if username is set/get username
@@ -201,6 +220,20 @@ int main(int argc, char **argv)
 	}
 
    return 0;
+}
+//Return -1 if username not found else return the fd of the owner.
+int findUserName(char name[],int len) {
+  struct userConnection *cur = firstConnection;
+  if (firstConnection == NULL) {
+    return -1;
+  }
+  while (cur!=NULL) {
+    if (cur->length!=len) continue;
+    if (0==strcmp(cur->username,name)) {
+      return cur->fd;
+    }
+  }
+  return -1;
 }
 
 int findUserFD(int fd){
