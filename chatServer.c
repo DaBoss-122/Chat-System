@@ -66,7 +66,7 @@ int main(int argc, char **argv)
 
    int nrrec = 0;
    fd_set set, rset;
-   char *taken = "1";
+   char taken = '0';
 
    int found = 0; //Was the username found or not
    struct userConnection *currentConn = NULL;
@@ -155,36 +155,43 @@ int main(int argc, char **argv)
 					switch(recline[0]){
 						case JOIN:
 							printf("Joining.\n");
-              //Extract User Name
-              int unameLen = res-2;
+				              //Extract User Name
+				              int unameLen = res-2;
 
-              							//1. iterate through list of usernames and find the filedescriptor
-							found = findUserName(&(recline[3]),unameLen);
-							if (found<0){
-								//2.0 Set username & length in userConnection
-               found = findUserFD(i);
-              if (!found) {
-                insert(i,&(recline[3]),unameLen);
-              }
-              else {
-                //Be mean and do not let them change the name.
-              }
-								//insert(i, &recline[3], );
-							}
+								//1. iterate through list of usernames and find the filedescriptor
+								found = findUserName(&(recline[3]),unameLen);
+								//if (found<0){
+									//2.0 Set username & length in userConnection
+				               	  found = findUserFD(i);
+								  //If found is -1, then no users have been added yet.
+					              if (!found || found == -1) {
+					                insert(i,&(recline[3]),unameLen);
+									taken = '0';
+									send(ssock, &taken, 1, 0);
+									printf("Username valid.\n");
+					              }
+								  else {
+									taken = '1';
+	  								send(ssock, &taken, 1, 0);
+									printf("Username invalid.\n");
+	  							  }
+					              // else {
+					              //   //Be mean and do not let them change the name.
+					              // }
+												//insert(i, &recline[3], );
+							  // }
 							//2.1 or if username is used, send used to client
-							else {
-								send(ssock, taken, 1, 0);
-							}
+
 							break;
 						case LEAVE:
 							close(i);
 							FD_CLR(i, &set);
 							// remove from userConnection
-              currentConn = userRemove(i);
-              free(currentConn->username);
-              free(currentConn);
-              //DO not free again.
-              currentConn = NULL;
+				              currentConn = userRemove(i);
+				              free(currentConn->username);
+				              free(currentConn);
+				              //DO not free again.
+				              currentConn = NULL;
 							break;
 						case TALK:
 							//1. check to see if username is set/get username
@@ -201,9 +208,6 @@ int main(int argc, char **argv)
 						case ERROR:
 							//blah blah blah
 							break;
-
-
-
 
 	                  /*if(res == -1)
 	                  {
@@ -239,12 +243,14 @@ int findUserFD(int fd){
     struct userConnection *prev = NULL;
 
     if(firstConnection == NULL) {
+	   printf("firstConnection is invalid.\n");
        return -1;
     }
 	//Loop through the list of
 	while(cur->fd != fd) {
 		if(cur->next == NULL) {
 			//User wasn't found
+			printf("User FD not found.\n");
 			return 0;
 		}
 		else {
@@ -253,20 +259,28 @@ int findUserFD(int fd){
 		}
 	}
 	//Found the user if we got here
+	printf("User FD is %i\n", fd);
 	return 1;
 }
 
 //Inserts a user - assumes that length includes the null pointer in its calculation
 void insert(int fd, char *username, int length) {
-   struct userConnection *node = (struct userConnection*) malloc(sizeof(struct userConnection));
+   struct userConnection *node;
+   // *node = <malloc> doesn't allocate the space but rather assigns node to hold that pointer, which produces a core dump when we try to assign an actual value to node.
+   node = (struct userConnection*) malloc(sizeof(struct userConnection));
 
+   printf("In insert function.\n");
    node->fd = fd;
    //Assumes that length includes the null pointer char!
    node->username = malloc(sizeof(char) * (length));
+   printf("Got username var allocated.\n");
    node->length = length;
+   printf("Length allocated.\n");
    node->next = firstConnection;
+   printf("Stored the 'next' var for the current linked list element");
    firstConnection = node;
    strcpy(*(node->username),username);
+   printf("Copied over the username\n");
 
 }
 
