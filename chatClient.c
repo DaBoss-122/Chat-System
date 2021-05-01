@@ -1,21 +1,3 @@
-////////////////////////////////////////////////////////////////// 
-// Student name: Luke Avent
-// Course: COSC 4653 - Advanced Networks
-// Assignment: #1 - Min-Max-StdDev Distributed Processing
-// File name: meanServer.c
-// Program's Purpose: To receive numbers from the client so that
-// it can do computations.
-// 
-// Program's Limitations: Does not work if not used how it is intended to be
-// used.
-// Development Computer: 
-// Operating System: Linux 5.10.12
-// Integrated Development Environment (IDE): VIM
-// Compiler: gcc
-// Program's Operational Status: Functional
-// Compile Command: gcc meanServer.c -lm
-///////////////////////////////////////////////////////////////////
-
 #include <stdio.h>
 #include <sys/socket.h>
 #include <stdlib.h>        // for exit
