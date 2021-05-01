@@ -136,9 +136,9 @@ int main(int argc, char **argv) {
    // set server socket on main select set
    FD_SET(sockfd, &set);
    //Set stdin
-   //FD_SET(0,&set);
+   //FD_SET(fileno(stdin),&set);
 
-        printf("CLient running.\n");
+        printf("Client running.\n");
    // infinite loop to process activity
    for(;;)
    {
@@ -146,14 +146,15 @@ int main(int argc, char **argv) {
       rset = set;
       //printList();
       // block indefinitely until someone is ready
-      res = select(FD_SETSIZE, &rset, NULL, NULL, NULL);
+      //res = select(FD_SETSIZE, &rset, NULL, NULL, NULL);
+      //res = recv(sockfd,recline,MAXLINE,0);
 
-      if(res == -1)
-         do_error("select() error", errno);
+      //if(res == -1)
+      //   do_error("select() error", errno);
 
 //Trying to receive non-blocking another way. Ignore this mess.
-     /*if (( res = read(0, recline, MAXLINE))>0) {
-printf("Got it\n");
+     if (( res = read(0, recline, MAXLINE))>0) {
+//printf("Got it\n");
        if (strcmp(recline,"@exit")==0) {
                     message[0] = LEAVE;
                     send(sockfd,message,1,0);
@@ -163,30 +164,32 @@ printf("Got it\n");
                   message[2] = res&0x00FF;
                   strcpy(&(message[3]),recline);
                   send(sockfd,message,res+3,0);
-                  printf("%s>",username);}}*/
+                  printf("%s>",username);}}
 
 
 
 
 
-      for(int i = 0; i < FD_SETSIZE; i++)
-      {
-         if(FD_ISSET(i, &rset))
-         {
-            res = recv(i, recline, MAXLINE, 0);
+      //for(int i = 0; i < FD_SETSIZE; i++)
+      //{
+      //   if(FD_ISSET(i, &rset))
+      //   {
+            res = recv(sockfd, recline, MAXLINE, 0);
                if (res == -1)
                {
                   // error - clear socket from scan list and close
-                  close(i);
-                  break;
+                  //printf("Got -1 weird\n");
+                  //close(sockfd);
+                  //break;
+                  continue;
                }
                else if (res > 0)
                {
                  recline[res] = 0;
                 printf("Received: %d %s\n",res, &(recline[3]));
-                if (i==sockfd) {
+                //if (i==sockfd) {
                 printf("%s",&(recline[3]));
-                }
+                /*}
                 else {
                   if (strcmp(recline,"@exit")==0) {
                     message[0] = LEAVE;
@@ -199,10 +202,10 @@ printf("Got it\n");
                   send(sockfd,message,res+3,0);
                   printf("%s>",username);}
 
-                }
+                }*/
                }
-         }
-      }
+        // }
+      //}
    }
    //close(sockfd);
    printf("Program Terminated Successfully.\n");
