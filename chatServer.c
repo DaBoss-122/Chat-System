@@ -178,9 +178,25 @@ int main(int argc, char **argv)
 								//2.0 Set username & length in userConnection
                 found = findUserFD(i);
                 printf("User file descriptor is: %d\n",found);
-                if (found<=0) {
+                if (found<=0&&unameLen>1) {
+
                   insert(i,&(recline[3]),unameLen);
+
+
                   send(i,&(recline[0]),1,0);
+
+                  strcpy(&(message[5]),&(recline[3]));
+                  strcpy(&(message[res+2])," is joining the chat**\n");
+                  mesLen = res+22;
+                  message[0] = TALK;
+                  message[2] = (char)(mesLen&0x00FF);
+                  message[1] = (char)(mesLen>>8);
+                  message[3] = '*';
+                  message[4] = '*';
+                  sendToAll(message,mesLen+3);
+
+
+
                 }
                 else {
                   //Be mean and do not let them change the name.
@@ -197,10 +213,23 @@ int main(int argc, char **argv)
 							}
 							break;
 						case LEAVE:
+              currentConn = userRemove(i);
+                  strcpy(&(message[5]),currentConn->username);
+                  strcpy(&(message[currentConn->length+4])," is leaving the chat**\n");
+                  mesLen = currentConn->length+24;
+                  message[0] = TALK;
+                  message[2] = (char)(mesLen&0x00FF);
+                  message[1] = (char)(mesLen>>8);
+                  message[3] = '*';
+                  message[4] = '*';
+                  sendToAll(message,mesLen+3);
+
+
+
 							close(i);
 							FD_CLR(i, &set);
 							// remove from userConnection
-              currentConn = userRemove(i);
+              //currentConn = userRemove(i);
               free(currentConn->username);
               free(currentConn);
               //DO not free again.
@@ -215,20 +244,23 @@ int main(int argc, char **argv)
                 break;
               }
               //heawder 3 username is len message is res
-              mesLen = currentConn->length+res-1;
+              mesLen = currentConn->length+res;
               //printf("mess len %x",mesLen);
               message[0] = TALK;
               message[2] = (char)(mesLen&0x00FF);
               message[1] = (char)(mesLen>>8);
+              message[3] = '[';
+              //message[4] = ' ';
               //printf("low bye %x high bye %x",message[1],message[2]);
 							//2. get the message (in recline)
-              strcpy(&(message[3]),currentConn->username);
+              strcpy(&(message[4]),currentConn->username);
+              // printf(message);
+              message[currentConn->length+3] = ']';
+              message[currentConn->length+4] = ' ';
+              //strcpy(&(message[currentConn->length+2]),": ");
               // printf(message);
 
-              strcpy(&(message[currentConn->length+2]),collon);
-              // printf(message);
-
-              strcpy(&(message[currentConn->length+4]),&(recline[3]));
+              strcpy(&(message[currentConn->length+5]),&(recline[3]));
               //printf(&(message[3]));
 							//3. concatonate username first (Username: message)
               //Length currentConn->length+2+res-1
