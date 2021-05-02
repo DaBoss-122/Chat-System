@@ -28,44 +28,28 @@ int main(int argc, char **argv) {
     fd_set set, rset;
     char message[MAXLINE+1];
     char recline[MAXLINE+1];
-    char username[MAXLINE/8];
+    char *username;
     int ipaddr;
     short port=9000;
     struct sockaddr_in servaddr, clientaddr;
     int amountReceived;
     sockfd = socket(AF_INET, SOCK_STREAM,0);
-
-    //Make sure OS frees socket.
-    //const int       optVal = 1;
-    //const socklen_t optLen = sizeof(optVal);
-    //setsockopt(servsockfd, SOL_SOCKET, SO_REUSEADDR, (void*) &optVal, optLen);
-
     bzero(&servaddr,sizeof(servaddr));
     servaddr.sin_family = AF_INET;
     servaddr.sin_port = htons(port);
-    //servaddr.sin_addr.s_addr = ipaddr;
-    if (argc<2) {
+
+    if (argc<3) {
         printf("Not enough arguments. Include the ip name.\n");
         return 0;
     }
     else {
         inet_pton(AF_INET,argv[1],&(servaddr.sin_addr));
         //printf("%d\n",port);
-        //
+        username = argv[2];
     }
-    int userLen=0;
+    int userLen=strlen(username);
    connect(sockfd, (struct sockaddr*) &servaddr, sizeof(servaddr));
-   for (;;) {
-      printf("Please enter a username.\n");
-      //Allow buffer overflow.
-      //scanf("%s",username);
-      //This works.
-      userLen = read(0,username,MAXLINE/8);
-      //userLen = strlen(username);
-      if (userLen<=0) {
-        printf("Empty usernames are not accepted.\n");
-        continue;
-      }
+
       message[0] = JOIN;
       message[1] = (userLen>>8)&0x00FF;
       message[2] = userLen&0x00FF;
@@ -77,15 +61,14 @@ int main(int argc, char **argv) {
       } else {
         if (recline[0]==0) {
           printf("Name Accepted\n");
-          break;
+          //break;
         }
         else {
           printf("User name already taken.\n");
+          return 0;
         }
-      }
-
-
    }
+   printf("%s>\n",username);
   flags = fcntl(sockfd, F_GETFL, 0);
 
    if (flags == -1)
@@ -114,81 +97,35 @@ int main(int argc, char **argv) {
    // zero select sets for select
    FD_ZERO(&set);
    FD_ZERO(&rset);
-
-   // set server socket on main select set
-   FD_SET(sockfd, &set);
-   //Set stdin
-   //FD_SET(fileno(stdin),&set);
-
-        printf("Client running.\n");
-   // infinite loop to process activity
+  // infinite loop to process activity
    for(;;)
    {
-      // copy main set to receive set
-      rset = set;
-      //printList();
-      // block indefinitely until someone is ready
-      //res = select(FD_SETSIZE, &rset, NULL, NULL, NULL);
-      //res = recv(sockfd,recline,MAXLINE,0);
-
-      //if(res == -1)
-      //   do_error("select() error", errno);
-
 //Trying to receive non-blocking another way. Ignore this mess.
      if (( res = read(0, recline, MAXLINE))>0) {
 //printf("Got it\n");
        if (strcmp(recline,"@exit")==0) {
-                    message[0] = LEAVE;
-                    send(sockfd,message,1,0);
-                  } else {
-                  message[0] = TALK;
-                  message[1] = (res>>8)&0x00FF;
-                  message[2] = res&0x00FF;
-                  strcpy(&(message[3]),recline);
-                  send(sockfd,message,res+3,0);
-                  printf("%s>",username);}}
-
-
-
-
-
-      //for(int i = 0; i < FD_SETSIZE; i++)
-      //{
-      //   if(FD_ISSET(i, &rset))
-      //   {
-            res = recv(sockfd, recline, MAXLINE, 0);
-               if (res == -1)
-               {
-                  // error - clear socket from scan list and close
-                  //printf("Got -1 weird\n");
-                  //close(sockfd);
-                  //break;
-                  continue;
-               }
-               else if (res > 0)
-               {
-                 recline[res] = 0;
-                printf("Received: %d %s\n",res, &(recline[3]));
-                //if (i==sockfd) {
-                printf("%s",&(recline[3]));
-                /*}
-                else {
-                  if (strcmp(recline,"@exit")==0) {
-                    message[0] = LEAVE;
-                    send(sockfd,message,1,0);
-                  } else {
-                  message[0] = TALK;
-                  message[1] = (res>>8)&0x00FF;
-                  message[2] = res&0x00FF;
-                  strcpy(&(message[3]),recline);
-                  send(sockfd,message,res+3,0);
-                  printf("%s>",username);}
-
-                }*/
-               }
-        // }
-      //}
-   }
+          message[0] = LEAVE;
+          send(sockfd,message,1,0);
+      } else {
+          message[0] = TALK;
+          message[1] = (res>>8)&0x00FF;
+          message[2] = res&0x00FF;
+          strcpy(&(message[3]),recline);
+          send(sockfd,message,res+3,0);
+          printf("%s>",username);
+      }
+     }
+     res = recv(sockfd, recline, MAXLINE, 0);
+     if (res == -1)
+      {
+       continue;
+      }
+     else if (res > 0)
+     {
+      recline[res] = 0;
+      printf("%s",&(recline[3]));
+     }
+  }
    //close(sockfd);
    printf("Program Terminated Successfully.\n");
    return 0;
