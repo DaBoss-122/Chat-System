@@ -39,14 +39,14 @@ int main(int argc, char **argv) {
    servaddr.sin_port = htons(port);
 
    if (argc<3) {
-      printf("Not enough arguments. Include the ip name.\n");
+      printf("Usage: command <ip addr> <username>\n");
       return 0;
    }
    else {
       inet_pton(AF_INET,argv[1],&(servaddr.sin_addr));
       username = argv[2];
    }
-   
+
    int userLen=strlen(username);
    connect(sockfd, (struct sockaddr*) &servaddr, sizeof(servaddr));
 
@@ -56,10 +56,10 @@ int main(int argc, char **argv) {
    strcpy(&(message[3]),username);
    send(sockfd,message,userLen+3,0);
    res = recv(sockfd,recline,MAXLINE,0);
-   
+
    if (res<=0) {
       printf("Received not a response.\n");
-   } 
+   }
    else {
       if (recline[0]==0) {
          printf("Name Accepted\n");
