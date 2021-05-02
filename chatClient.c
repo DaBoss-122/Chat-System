@@ -103,7 +103,15 @@ int main(int argc, char **argv) {
    {
       //Trying to receive non-blocking another way. Ignore this mess.
       if (( res = read(0, recline, MAXLINE))>0) {
-         if (strcmp(recline,"@exit")==0) {
+        char *leave = "@exit";
+        int done = 0;
+        for (int ii=0; ii<5; ii++) {
+          if (leave[ii]!=recline[ii]) {
+          done=1;
+          break;
+          }
+        }
+         if (done==0) {
             message[0] = LEAVE;
             send(sockfd,message,1,0);
          }
