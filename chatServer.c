@@ -1,5 +1,4 @@
-// techosels.c
-// TCP echo server using select
+// Chat Server - C Team
 
 #include <stdio.h>
 #include <sys/socket.h>
@@ -54,8 +53,8 @@ struct userConnection {
 struct userConnection *firstConnection;
 
 void sighad(int signo) {
-  fclose(fp);
-  exit(0);
+   fclose(fp);
+   exit(0);
 }
 
 int main(int argc, char **argv)
@@ -131,7 +130,7 @@ int main(int argc, char **argv)
    {
       // copy main set to receive set
       rset = set;
-      //printList();
+
       // block indefinitely until someone is ready
       res = select(FD_SETSIZE, &rset, NULL, NULL, NULL);
 
@@ -150,13 +149,14 @@ int main(int argc, char **argv)
                if (csock == -1) {
                   do_error("accept() error", errno);
                   fprintf(fp, "Refused connection from %s on port %d\n", inet_ntoa((struct in_addr)caddr.sin_addr), ntohs(caddr.sin_port));
-            } else
+               } 
+               else
                {
                   // add new client socket to master set
                   FD_SET(csock, &set);
-				  //Add to userConnection
-          printf("New Client Connected %d",csock);
-          fprintf(fp, "Accepted connection from %s on port %d\n", inet_ntoa((struct in_addr)caddr.sin_addr), ntohs(caddr.sin_port));
+				      //Add to userConnection
+                  printf("New Client Connected %d",csock);
+                  fprintf(fp, "Accepted connection from %s on port %d\n", inet_ntoa((struct in_addr)caddr.sin_addr), ntohs(caddr.sin_port));
 
                }
             }
@@ -171,135 +171,119 @@ int main(int argc, char **argv)
                }
                else if (res > 0)
                {
-                 recline[res] = 0;
-				    //printf("Received: %d %s\n",res, &(recline[3]));
-					//recline[res] = 0;
-          //printList();
-					//Switch statement for operations
-					switch(recline[0]){
-						case JOIN:
-							printf("Joining.\n");
-              //Extract User Name
-              unameLen = res-2;
-              //`printf("Before\n");
+                  recline[res] = 0;
+				      
+					   //Switch statement for operations
+                  switch(recline[0]){
+                     case JOIN:
+                        printf("Joining.\n");
+                        //Extract User Name
+                        unameLen = res-2;
+                        
+                        //1. iterate through list of usernames and find the filedescriptor
+                        found = findUserName(&(recline[3]),unameLen);
 
-              //printf("After");
-							//1. iterate through list of usernames and find the filedescriptor
-							found = findUserName(&(recline[3]),unameLen);
-
-              //printf("User found is %d\n",found);
-							if (found<0){
-								//2.0 Set username & length in userConnection
-                found = findUserFD(i);
-                //printf("User file descriptor is: %d\n",found);
-                if (found<=0&&unameLen>1) {
-                  fprintf(fp, "The username %s was accepted. Joining chat\n", &(recline[3]));
-                  insert(i,&(recline[3]),unameLen);
+                        if (found<0){
+                           //2.0 Set username & length in userConnection
+                           found = findUserFD(i);
+                           
+                           if (found<=0&&unameLen>1) {
+                              fprintf(fp, "The username %s was accepted. Joining chat\n", &(recline[3]));
+                              insert(i,&(recline[3]),unameLen);
 
 
-                  send(i,&(recline[0]),1,0);
+                              send(i,&(recline[0]),1,0);
 
-                  strcpy(&(message[5]),&(recline[3]));
-                  strcpy(&(message[res+2])," is joining the chat**\n");
-                  mesLen = res+22;
-                  message[0] = TALK;
-                  message[2] = (char)(mesLen&0x00FF);
-                  message[1] = (char)(mesLen>>8);
-                  message[3] = '*';
-                  message[4] = '*';
-                  sendToAll(message,mesLen+3);
+                              strcpy(&(message[5]),&(recline[3]));
+                              strcpy(&(message[res+2])," is joining the chat**\n");
+                              mesLen = res+22;
+                              message[0] = TALK;
+                              message[2] = (char)(mesLen&0x00FF);
+                              message[1] = (char)(mesLen>>8);
+                              message[3] = '*';
+                              message[4] = '*';
+                              sendToAll(message,mesLen+3);
 
+                           }
+                           else {
+                              //Be mean and do not let them change the name.
+                              recline[0]+=1;
+                              send(i,&(recline[0]),1,0);
+                              fprintf(fp, "The username %s was rejected - name in use\n", &(recline[3]));
+                           }
+                        }
+                        //2.1 or if username is used, send used to client
+                        else {
+                           recline[0]+=1;
+                           send(i, &(recline[0]), 1, 0);
+                           fprintf(fp, "The username %s was rejected - name in use\n", &(recline[3]));
+                        }
+                        break;
+                     // End of JOIN
 
+                     case LEAVE:
+                        currentConn = userRemove(i);
+                        strcpy(&(message[5]),currentConn->username);
+                        strcpy(&(message[currentConn->length+4])," is leaving the chat**\n");
+                        mesLen = currentConn->length+24;
+                        message[0] = TALK;
+                        message[2] = (char)(mesLen&0x00FF);
+                        message[1] = (char)(mesLen>>8);
+                        message[3] = '*';
+                        message[4] = '*';
+                        sendToAll(message,mesLen+3);
 
-                }
-                else {
-                  //Be mean and do not let them change the name.
-                  //printf("DBG i: %d found: %d",i,found);
-                  recline[0]+=1;
-                  send(i,&(recline[0]),1,0);
-                  fprintf(fp, "The username %s was rejected - name in use\n", &(recline[3]));
-                }
-								//insert(i, &recline[3], );
-							}
-							//2.1 or if username is used, send used to client
-							else {
-                recline[0]+=1;
-								send(i, &(recline[0]), 1, 0);
-                fprintf(fp, "The username %s was rejected - name in use\n", &(recline[3]));
-							}
-							break;
-						case LEAVE:
-              currentConn = userRemove(i);
-                  strcpy(&(message[5]),currentConn->username);
-                  strcpy(&(message[currentConn->length+4])," is leaving the chat**\n");
-                  mesLen = currentConn->length+24;
-                  message[0] = TALK;
-                  message[2] = (char)(mesLen&0x00FF);
-                  message[1] = (char)(mesLen>>8);
-                  message[3] = '*';
-                  message[4] = '*';
-                  sendToAll(message,mesLen+3);
+                        close(i);
+                        FD_CLR(i, &set);
+                        // remove from userConnection
+                        currentConn = userRemove(i);
+                        free(currentConn->username);
+                        free(currentConn);
+                        //DO not free again.
+                        currentConn = NULL;
+                        break;
+                     // End of LEAVE
 
+                     case TALK:
+                        //1. check to see if username is set/get usernamea
+                        currentConn = getUser(i);
+                        if (currentConn==NULL) {
+                           send(i,&(recline[0]),1,0);
+                           printf("Not on server");
+                           break;
+                        }
 
+                        //header 3 username is len message is res
+                        mesLen = currentConn->length+res;
 
-							close(i);
-							FD_CLR(i, &set);
-							// remove from userConnection
-				              currentConn = userRemove(i);
-				              free(currentConn->username);
-				              free(currentConn);
-				              //DO not free again.
-				              currentConn = NULL;
-							break;
-						case TALK:
-							//1. check to see if username is set/get usernamea
-              currentConn = getUser(i);
-              if (currentConn==NULL) {
-                send(i,&(recline[0]),1,0);
-                printf("Not on server");
-                break;
-              }
-              //heawder 3 username is len message is res
-              mesLen = currentConn->length+res;
-              //printf("mess len %x",mesLen);
-              message[0] = TALK;
-              message[2] = (char)(mesLen&0x00FF);
-              message[1] = (char)(mesLen>>8);
-              message[3] = '[';
-              //message[4] = ' ';
-              //printf("low bye %x high bye %x",message[1],message[2]);
-							//2. get the message (in recline)
-              strcpy(&(message[4]),currentConn->username);
-              // printf(message);
-              message[currentConn->length+3] = ']';
-              message[currentConn->length+4] = ' ';
-              //strcpy(&(message[currentConn->length+2]),": ");
-              // printf(message);
+                        message[0] = TALK;
+                        message[2] = (char)(mesLen&0x00FF);
+                        message[1] = (char)(mesLen>>8);
+                        message[3] = '[';
+            
+                        //2. get the message (in recline)
+                        strcpy(&(message[4]),currentConn->username);
+                        message[currentConn->length+3] = ']';
+                        message[currentConn->length+4] = ' ';
 
-              strcpy(&(message[currentConn->length+5]),&(recline[3]));
-              //printf(&(message[3]));
-							//3. concatonate username first (Username: message)
-              //Length currentConn->length+2+res-1
-              sendToAll(message,mesLen+3);
-							//4. call method to send to everyone
-							break;
-						case LIST:
-							//blah blah blah
-							break;
-						case DIRECT:
-							//blah blah blah
-							break;
-						case ERROR:
-							//blah blah blah
-							break;
+                        strcpy(&(message[currentConn->length+5]),&(recline[3]));
+                        //3. concatonate username first (Username: message)
+                        sendToAll(message,mesLen+3);
+                        //4. call method to send to everyone
+                        break;
+                     // End of TALK
 
-	                  /*if(res == -1)
-	                  {
-	                     // send error - clear socket from list
+                     case LIST:
+                        //blah blah blah
+                        break;
+                     case DIRECT:
+                        //blah blah blah
+                        break;
+                     case ERROR:
+                        //blah blah blah
+                        break;
 
-					 }*/
 	               }
-          //printList();
 	            }
 	         }
 	      }
@@ -308,41 +292,41 @@ int main(int argc, char **argv)
    fclose(fp);
    return 0;
 }
+// End of main
+
 //Return -1 if username not found else return the fd of the owner.
 int findUserName(char *name,int len) {
-  //printf("Finding user name\n");
-  struct userConnection *cur = firstConnection;
-  if (firstConnection == NULL) {
-    //printf("List Empty\n");
-    return -1;
-  }
-  //printf("Starting Loop\n");
-  while (cur!=NULL) {
+   //printf("Finding user name\n");
+   struct userConnection *cur = firstConnection;
+   if (firstConnection == NULL) {
+      //printf("List Empty\n");
+      return -1;
+   }
+   //printf("Starting Loop\n");
+   while (cur!=NULL) {
 
-    if (cur->length == len) {
-    //printf("Comparing: %s and %s\n",cur->username,name);
-    if (0==strcmp(cur->username,name)) {
-      return cur->fd;
-    }
-  }
-  cur=cur->next;
-  }
-  //printf("Not found\n");
-  return -1;
+   if (cur->length == len) {
+      if (0==strcmp(cur->username,name)) {
+         return cur->fd;
+      }
+   }
+   cur=cur->next;
+   }
+   return -1;
 }
 
 int findUserFD(int fd){
 	struct userConnection *cur = firstConnection;
-    struct userConnection *prev = NULL;
+   struct userConnection *prev = NULL;
 
-    if(firstConnection == NULL) {
+   if(firstConnection == NULL) {
 	   printf("firstConnection is invalid.\n");
-       return -1;
-    }
+      return -1;
+   }
 	//Loop through the list of
 	while(cur->fd != fd) {
 		if(cur->next == NULL) {
-			//User wasn't found
+		   //User wasn't found
 			printf("User FD not found.\n");
 			return 0;
 		}
@@ -355,23 +339,25 @@ int findUserFD(int fd){
 	printf("User FD is %i\n", fd);
 	return 1;
 }
+
 int sendToAll(char *message, int len) {
   struct userConnection *cur = firstConnection;
   fprintf (fp, &(message[3]));
-  if (firstConnection == NULL) {
-    return -1;
-  }
-  while (cur!=NULL) {
-    send(cur->fd,message,len,0);
-    //printf("Sent %s to %d\n",&(message[3]),cur->fd);
-    cur = cur->next;
-  }
-  return 1;
+   if (firstConnection == NULL) {
+      return -1;
+   }
+   while (cur!=NULL) {
+      send(cur->fd,message,len,0);
+      cur = cur->next;
+   }
+   return 1;
 }
+
 //Inserts a user - assumes that length includes the null pointer in its calculation
 void insert(int fd, char *username, int length) {
    struct userConnection *node;
-   // *node = <malloc> doesn't allocate the space but rather assigns node to hold that pointer, which produces a core dump when we try to assign an actual value to node.
+   // *node = <malloc> doesn't allocate the space but rather assigns node to hold that pointer,
+   //    which produces a core dump when we try to assign an actual value to node.
    node = (struct userConnection*) malloc(sizeof(struct userConnection));
 
    printf("In insert function.\n");
@@ -387,25 +373,9 @@ void insert(int fd, char *username, int length) {
    strcpy(node->username,username);
 
 }
-/*void printList() {
-  printf("List: ");
-struct userConnection *cur = firstConnection;
-  if(firstConnection==NULL) {
-    //printf("NULL\n");
-    return;
-  }
-while(cur!=NULL) {
 
-			//prev = cur;
-      //printf("%d, ",cur->fd);
-			cur = cur->next;
-
-	}
-
-}*/
 struct userConnection *getUser(int fd) {
    struct userConnection *cur = firstConnection;
-   //struct userConnection *prev = NULL;
 
    if(firstConnection == NULL) {
       return NULL;
@@ -414,13 +384,11 @@ struct userConnection *getUser(int fd) {
       if(cur->next == NULL) {
          return NULL;
       } else {
-         //prev = cur;
          cur = cur->next;
       }
    }
    return cur;
 }
-
 
 //Removes a user from the list of users
 struct userConnection *userRemove(int fd) {
