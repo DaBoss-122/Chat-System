@@ -34,6 +34,7 @@ int sendToAll(char *message, int len);
 int findUserFD(int fd);
 int findUserName(char *name, int len);
 void printList();
+FILE *fp;
 //Functions:
 //Sends to all the sockets
 
@@ -58,6 +59,13 @@ int main(int argc, char **argv)
    char recline[MAXLINE + 1];
 
    struct sockaddr_in servaddr, caddr;
+   //FILE *fp;
+   char fileText[MAXLINE + 1];
+   fp = fopen("cteam_chatserver.txt", "a");
+   if(fp == NULL){
+      printf("file can't be opened\n");
+      exit(1);
+   }
 
    int ssock;  // server sockfd
    int csock;  // client sockfd when accepting connction
@@ -135,14 +143,16 @@ int main(int argc, char **argv)
               printf("Client connection attempt\n");
               bzero(&caddr, sizeof(caddr));
                csock = accept(ssock, (struct sockaddr *) &caddr, &csize);
-               if (csock == -1)
+               if (csock == -1) {
                   do_error("accept() error", errno);
-               else
+                  fprintf(fp, "Refused connection from %s on port %d\n", inet_ntoa((struct in_addr)caddr.sin_addr), ntohs(caddr.sin_port));
+            } else
                {
                   // add new client socket to master set
                   FD_SET(csock, &set);
 				  //Add to userConnection
           printf("New Client Connected %d",csock);
+          fprintf(fp, "Accepted connection from %s on port %d\n", inet_ntoa((struct in_addr)caddr.sin_addr), ntohs(caddr.sin_port));
 
                }
             }
@@ -158,7 +168,7 @@ int main(int argc, char **argv)
                else if (res > 0)
                {
                  recline[res] = 0;
-				    printf("Received: %d %s\n",res, &(recline[3]));
+				    //printf("Received: %d %s\n",res, &(recline[3]));
 					//recline[res] = 0;
           //printList();
 					//Switch statement for operations
@@ -173,13 +183,13 @@ int main(int argc, char **argv)
 							//1. iterate through list of usernames and find the filedescriptor
 							found = findUserName(&(recline[3]),unameLen);
 
-              printf("User found is %d\n",found);
+              //printf("User found is %d\n",found);
 							if (found<0){
 								//2.0 Set username & length in userConnection
                 found = findUserFD(i);
-                printf("User file descriptor is: %d\n",found);
+                //printf("User file descriptor is: %d\n",found);
                 if (found<=0&&unameLen>1) {
-
+                  fprintf(fp, "The username %s was accepted. Joining chat\n", &(recline[3]));
                   insert(i,&(recline[3]),unameLen);
 
 
@@ -203,6 +213,7 @@ int main(int argc, char **argv)
                   //printf("DBG i: %d found: %d",i,found);
                   recline[0]+=1;
                   send(i,&(recline[0]),1,0);
+                  fprintf(fp, "The username %s was rejected - name in use\n", &(recline[3]));
                 }
 								//insert(i, &recline[3], );
 							}
@@ -210,6 +221,7 @@ int main(int argc, char **argv)
 							else {
                 recline[0]+=1;
 								send(i, &(recline[0]), 1, 0);
+                fprintf(fp, "The username %s was rejected - name in use\n", &(recline[3]));
 							}
 							break;
 						case LEAVE:
@@ -292,7 +304,7 @@ int main(int argc, char **argv)
 	      }
 	   }
 	}
-
+   fclose(fp);
    return 0;
 }
 //Return -1 if username not found else return the fd of the owner.
@@ -341,12 +353,13 @@ int findUserFD(int fd){
 }
 int sendToAll(char *message, int len) {
   struct userConnection *cur = firstConnection;
+  fprintf (fp, &(message[3]));
   if (firstConnection == NULL) {
     return -1;
   }
   while (cur!=NULL) {
     send(cur->fd,message,len,0);
-    printf("Sent %s to %d\n",&(message[3]),cur->fd);
+    //printf("Sent %s to %d\n",&(message[3]),cur->fd);
     cur = cur->next;
   }
   return 1;
@@ -364,22 +377,22 @@ void insert(int fd, char *username, int length) {
    strcpy(node->username,username);
 
 }
-void printList() {
+/*void printList() {
   printf("List: ");
 struct userConnection *cur = firstConnection;
   if(firstConnection==NULL) {
-    printf("NULL\n");
+    //printf("NULL\n");
     return;
   }
 while(cur!=NULL) {
 
 			//prev = cur;
-      printf("%d, ",cur->fd);
+      //printf("%d, ",cur->fd);
 			cur = cur->next;
 
 	}
 
-}
+}*/
 struct userConnection *getUser(int fd) {
    struct userConnection *cur = firstConnection;
    //struct userConnection *prev = NULL;
