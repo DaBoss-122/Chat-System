@@ -82,6 +82,7 @@ int main(int argc, char **argv)
    int nrrec = 0;
    fd_set set, rset;
    char taken = '0';
+   char message[MAXLINE+1];
 
    int found = 0; //Was the username found or not
    struct userConnection *currentConn = NULL;
@@ -149,7 +150,7 @@ int main(int argc, char **argv)
                if (csock == -1) {
                   do_error("accept() error", errno);
                   fprintf(fp, "Refused connection from %s on port %d\n", inet_ntoa((struct in_addr)caddr.sin_addr), ntohs(caddr.sin_port));
-               } 
+               }
                else
                {
                   // add new client socket to master set
@@ -172,21 +173,21 @@ int main(int argc, char **argv)
                else if (res > 0)
                {
                   recline[res] = 0;
-				      
+
 					   //Switch statement for operations
                   switch(recline[0]){
                      case JOIN:
                         printf("Joining.\n");
                         //Extract User Name
                         unameLen = res-2;
-                        
+
                         //1. iterate through list of usernames and find the filedescriptor
                         found = findUserName(&(recline[3]),unameLen);
 
                         if (found<0){
                            //2.0 Set username & length in userConnection
                            found = findUserFD(i);
-                           
+
                            if (found<=0&&unameLen>1) {
                               fprintf(fp, "The username %s was accepted. Joining chat\n", &(recline[3]));
                               insert(i,&(recline[3]),unameLen);
@@ -236,7 +237,7 @@ int main(int argc, char **argv)
                         close(i);
                         FD_CLR(i, &set);
                         // remove from userConnection
-                        currentConn = userRemove(i);
+                        //currentConn = userRemove(i);
                         free(currentConn->username);
                         free(currentConn);
                         //DO not free again.
@@ -260,7 +261,7 @@ int main(int argc, char **argv)
                         message[2] = (char)(mesLen&0x00FF);
                         message[1] = (char)(mesLen>>8);
                         message[3] = '[';
-            
+
                         //2. get the message (in recline)
                         strcpy(&(message[4]),currentConn->username);
                         message[currentConn->length+3] = ']';
