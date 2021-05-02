@@ -13,6 +13,7 @@
 #include <errno.h>         // for errno
 #include <fcntl.h>         // for fcntl
 #include <string.h>       // for strcmp
+#include <signal.h>
 
 #define ECHO_PORT 9000
 #define MAXLINE 4096
@@ -52,12 +53,16 @@ struct userConnection {
 
 struct userConnection *firstConnection;
 
-
+void sighad(int signo) {
+  fclose(fp);
+  exit(0);
+}
 
 int main(int argc, char **argv)
 {
    char recline[MAXLINE + 1];
-
+   signal(SIGINT,sighad);
+   signal(SIGTERM,sighad);
    struct sockaddr_in servaddr, caddr;
    //FILE *fp;
    char fileText[MAXLINE + 1];
